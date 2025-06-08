@@ -3,15 +3,26 @@
 Este projeto implementa uma API RESTful em .NET 6 utilizando ASP.NET Core, que expõe operações básicas de CRUD para a entidade Usuario, com autenticação via JWT e acesso a dados via procedures no SQL Server.
 
 -Tecnologias utilizadas
+
 ASP.NET Core 6
+
 Web API
+
 SQL Server
+
 Procedures armazenadas
+
 JWT (JSON Web Token)
+
 Swagger (OpenAPI)
+
 Injeção de Dependência (DI)
+
 NUnit (para testes unitários)
+
 Visual Studio 2022
+
+
 
 -Estrutura da solução
 A solução é composta por 6 projetos:
