@@ -1,96 +1,116 @@
-﻿using CRUD.Interface;
-using CRUD.Model;
-using CRUD.Service;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using CRUD.Interface;
+using CRUD.Model;
+
 
 namespace CRUD.API.Controllers
 {
-    [Authorize]
+    [Authorize] // Requer autenticação para todos os endpoints por padrão
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/[controller]")] // Rota será: api/usuario
     public class UsuarioController : ControllerBase
     {
         private readonly IUsuarioService _service;
-        public UsuarioController(IUsuarioService service) => _service = service;
 
 
-        //[HttpPost("login")]
-        //public IActionResult Login([FromBody] LoginModel login)
-        //{
-        //    if (login.Usuario == "Admin" && login.Senha == "Admin")
-        //    {
-        //        var token = GerarTokenJWT(login.Usuario);
-        //        return Ok(new { token });
-        //    }
-
-        //    return Unauthorized("Usuário ou senha inválidos.");
-        //}
+        // Injeção de dependência do serviço
+        public UsuarioController(IUsuarioService service)
+        {
+            _service = service;
+        }
 
 
+        /// <summary>
+        /// Lista todos os usuários
+        /// </summary>
+        /// <returns>Lista de usuários</returns>
         [HttpGet]
-        [Authorize]
-        public async Task<IActionResult> Get() => Ok(await _service.ListarAsync());
+        public async Task<IActionResult> Get()
+        {
+            try
+            {
+                var usuarios = await _service.ListarAsync();
+                return Ok(usuarios);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao listar usuários: {ex.Message}");
+            }
+        }
 
 
-
+        /// <summary>
+        /// Insere um novo usuário
+        /// </summary>
+        /// <param name="usuario">Objeto do tipo Usuario</param>
+        /// <returns>ID do novo usuário</returns>
         [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> Post([FromBody] Usuario usuario) =>
-            Ok(await _service.InserirAsync(usuario));
+        public async Task<IActionResult> Post([FromBody] Usuario usuario)
+        {
+            if (usuario == null)
+                return BadRequest("Usuário inválido.");
+
+            try
+            {
+                var novoId = await _service.InserirAsync(usuario);
+                return Ok(novoId);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao inserir usuário: {ex.Message}");
+            }
+        }
 
 
-
+        /// <summary>
+        /// Atualiza um usuário existente
+        /// </summary>
+        /// <param name="id">ID informado na URL</param>
+        /// <param name="usuario">Objeto com os dados atualizados</param>
         [HttpPut("{id}")]
-        [Authorize]
         public async Task<IActionResult> Put([FromRoute] int id, [FromBody] Usuario usuario)
         {
-            if (id != usuario.UsuarioId)
-                return BadRequest("O ID da URL e do corpo não coincidem.");
+            if (usuario == null)
+                return BadRequest("Dados inválidos.");
 
-            await _service.AtualizarAsync(usuario);
-            return NoContent();
+            if (id != usuario.UsuarioId)
+                return BadRequest("O ID da URL não confere com o ID do objeto.");
+
+            try
+            {
+                await _service.AtualizarAsync(usuario);
+                return NoContent(); // 204 - sucesso sem conteúdo
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao atualizar usuário: {ex.Message}");
+            }
         }
 
 
-
+        /// <summary>
+        /// Deleta um usuário pelo ID
+        /// </summary>
+        /// <param name="id">ID do usuário a ser removido</param>
         [HttpDelete("{id}")]
-        [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
-            await _service.DeletarAsync(id);
-            return Ok();
-        }
+            if (id <= 0)
+                return BadRequest("ID inválido.");
 
-
-
-        private string GerarTokenJWT(string usuario)
-        {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("MinhaChaveSuperSecreta@123"));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
+            try
             {
-            new Claim(ClaimTypes.Name, usuario),
-            new Claim(ClaimTypes.Role, "Admin")
-        };
-
-            var token = new JwtSecurityToken(
-                issuer: "crud-api",
-                audience: "crud-client",
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+                await _service.DeletarAsync(id);
+                return Ok($"Usuário {id} removido com sucesso.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro ao deletar usuário: {ex.Message}");
+            }
         }
+
 
     }
-
 }
+
